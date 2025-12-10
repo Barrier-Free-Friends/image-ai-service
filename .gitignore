@@ -1,0 +1,17 @@
+# 가상환경 폴더
+venv/
+env/
+.env
+
+# 파이썬 컴파일 파일 및 캐시
+__pycache__/
+*.py[cod]
+
+# Mac 시스템 파일
+.DS_Store
+
+.vscode/
+
+# AI 모델 캐시 (혹시 프로젝트 폴더 내에 있다면)
+*.pth
+*.bin
