@@ -2,7 +2,7 @@ name: Deploy to GCP
 
 on:
   push:
-    branches: [ "main", "dev", "feat/#1-image-ai-check" ]
+    branches: [ "main", "dev", "feat/#5-docker-setting" ]
 
 jobs:
   build-and-deploy:
