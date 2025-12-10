@@ -17,6 +17,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set up Dokcer Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
@@ -24,6 +27,9 @@ jobs:
           push: true
           # 2. 이미지 이름 설정 (본인ID/이미지명:태그)
           tags: ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest
+
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy to GCP Instance
         uses: appleboy/ssh-action@master
@@ -35,6 +41,10 @@ jobs:
             # 기존 컨테이너가 있다면 중지 및 삭제
             docker stop image-ai-app || true
             docker rm image-ai-app || true
+
+            docker rmi ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest || true
+
+            docker system prune -f
             
             # 최신 이미지 다운로드
             docker pull ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest
