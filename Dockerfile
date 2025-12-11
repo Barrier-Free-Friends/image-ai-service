@@ -1,6 +1,9 @@
 # 베이스 이미지 설정
 FROM python:3.11
 
+# 버퍼링 말고 즉시 출력 설정
+ENV PYTHONUNBUFFERED=1
+
 # 작업 디렉토리 설정
 WORKDIR /app
 
