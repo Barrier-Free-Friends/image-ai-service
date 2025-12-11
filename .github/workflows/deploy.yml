@@ -1,0 +1,53 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches: [ "**"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Dokcer Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          # 2. 이미지 이름 설정 (본인ID/이미지명:태그)
+          tags: ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest
+
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to GCP Instance
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.GCP_USERNAME }} # 3. GCP 접속 유저명 (보통 구글계정 아이디 앞부분)
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # 기존 컨테이너가 있다면 중지 및 삭제
+            docker stop image-ai-app || true
+            docker rm image-ai-app || true
+
+            docker rmi ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest || true
+
+            docker system prune -f
+            
+            # 최신 이미지 다운로드
+            docker pull ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest
+            
+            # 새 컨테이너 실행 (8000포트 사용 예시)
+            docker run -d --name image-ai-app -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest

@@ -64,7 +64,6 @@ async def analyze_image(request: ImageRequest):
         raise HTTPException(status_code=400, detail=f"이미지 변환 실패: {str(e)}")
 
     # 3. 질문 (프롬프트) 변경
-    # "Describe" (묘사해라) 또는 "What is" (무엇이니)로 시작해야 문장으로 답해줍니다.
     prompt = "Check if there is a physical object blocking the path, such as a fallen tree, construction barrier, or large rocks etc. Do not consider snow, leaves, or a hill as an obstacle unless it completely blocks the way. If the path is passable for a wheelchair, say 'The path is clear'. Otherwise, describe the blocking object."
 
     
@@ -75,9 +74,6 @@ async def analyze_image(request: ImageRequest):
     print(f"AI 답변: {answer}") # 로그 확인용
 
     # 5. 결과 후처리
-    # 이제 AI가 "Yes"라고 안 하고 "A fallen tree is blocking..." 처럼 말할 것임
-    # 로직을 조금 더 유연하게 다듬습니다.
-    
     is_obstacle = False
     tag = "normal"
     answer_lower = answer.lower()
