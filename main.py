@@ -83,21 +83,24 @@ async def root():
 async def info():
     return {"app": APP_NAME, "status": "running"}
 
-class ImageListRequest(BaseModel):
-    imageUrls : List[str]
+
         
 class AnalysisResult(BaseModel):
     analysis_result: str
     is_obstacle: bool
     tag: str
 
-class ImageReqeustDto(BaseModel):
+class AiImageRequest(BaseModel):
     fileUrl : str
     latitude : float
     longitude : float
     address : str
 
-def analyze_single_image(image_request: ImageReqeustDto) -> AnalysisResult:
+class ImageListRequest(BaseModel):
+    imageUrls : List[AiImageRequest]
+
+
+def analyze_single_image(image_request: AiImageRequest) -> AnalysisResult:
     try:
         
         # 요청 거부하지 않도록 User-Agent 헤더 추가
