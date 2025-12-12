@@ -19,13 +19,27 @@ try:
 except:
     INSTANCE_IP = "127.0.0.1"
 
+
+def get_external_ip():
+    try:
+        ip = requests.get('https://api.ipify.org').text
+        print(f"퍼블릭 IP 주소: {ip}")
+        return ip
+    except Exception as e:
+        print(f"퍼블릭 IP 주소 조회 실패: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 앱 시작 시 실행할 코드
+    
+    cur_ip = get_external_ip()
+    
     await eureka_client.init_async(
         eureka_server=EUREKA_SERVER_URL,
         app_name=APP_NAME,
         instance_port=INSTANCE_PORT,
+        instance_ip=cur_ip,
+        instance_host=cur_ip
     )
     print("Eureka 등록 완료")
     yield
