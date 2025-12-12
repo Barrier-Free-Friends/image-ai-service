@@ -92,7 +92,7 @@ class AnalysisResult(BaseModel):
     tag: str
 
 class ImageReqeustDto(BaseModel):
-    imageUrl : str
+    fileUrl : str
     latitude : float
     longitude : float
     address : str
@@ -106,7 +106,7 @@ def analyze_single_image(image_request: ImageReqeustDto) -> AnalysisResult:
         }
         
         # 1. 이미지 다운로드
-        response = requests.get(image_request.imageUrl, headers=headers)
+        response = requests.get(image_request.fileUrl, headers=headers)
         response.raise_for_status()
         
         content_type = response.headers.get('Content-Type', '')
