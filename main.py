@@ -97,7 +97,7 @@ class AiImageRequest(BaseModel):
     address : str
 
 class ImageListRequest(BaseModel):
-    imageUrls : List[AiImageRequest]
+    images : List[AiImageRequest]
 
 
 def analyze_single_image(image_request: AiImageRequest) -> AnalysisResult:
@@ -208,12 +208,12 @@ async def analyze_list_image(request: ImageListRequest):
     모든 이미지가 장애물일 경우, 첫 번째 장애물 결과를 리턴하도록 한다
     """
     
-    if not request.imageUrls:
+    if not request.images:
         raise HTTPException(status_code=400, detail="이미지 URL 리스트가 비어 있습니다.")
     
     first_obstacle_result = None
     
-    for url in request.imageUrls:
+    for url in request.images:
         # 단일 이미지 분석하고 결과 받기
         result = analyze_single_image(url)
         
