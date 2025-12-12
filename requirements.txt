@@ -10,3 +10,4 @@ pydantic
 requests
 pillow
 python-multipart
+py_eureka_client
