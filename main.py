@@ -121,8 +121,13 @@ def analyze_single_image(image_url: str) -> AnalysisResult:
         raise AnalysisResult(analysis_result=f"이미지 변환 실패: {str(e)}", is_obstacle=False, tag="process error")
 
     # 3. 질문 (프롬프트) 변경
-    prompt = "Check if there is a physical object blocking the path, such as a fallen tree, construction barrier, or large rocks etc. Do not consider snow, leaves, or a hill as an obstacle unless it completely blocks the way. If the path is passable for a wheelchair, say 'The path is clear'. Otherwise, describe the blocking object."
-
+    prompt = (
+            "Is there a 'fallen tree', 'construction barrier', 'large rocks', 'stairs', or 'furniture' blocking the way? "
+            "If yes, name the obstacle. "
+            "If no obstacle is seen, check if this is a road or path. "
+            "If it is NOT a road or path, say 'not a path'. "
+            "If it is a clear road, say 'clear'."
+        )
     
     # 4. 모델 추론
     enc_image = model.encode_image(image)
@@ -134,12 +139,20 @@ def analyze_single_image(image_url: str) -> AnalysisResult:
     is_obstacle = False
     tag = "normal"
     answer_lower = answer.lower()
+    
+    if "not a path" in answer_lower:
+        # 길이 아닌 경우
+        is_obstacle = False
+        tag = "not_a_path"
+        answer = "No"
 
-    # 모델이 "The path is clear"라고 답하면 장애물 없음으로 처리
-    # 부정적인 단어(clear, passable)가 포함되어 있으면 장애물 없음
-    if "clear" in answer_lower or "passable" in answer_lower or "no obstacle" in answer_lower or 'no' in answer_lower:
+    # 길 깨끗한 경우
+    elif "clear" in answer_lower or "passable" in answer_lower or "no obstacle" in answer_lower or 'no' in answer_lower:
         is_obstacle = False
         tag = "normal"
+        answer = "No"
+    
+    # 장애물 있는 경우
     else:
         # 그 외의 경우 (무언가 설명하기 시작함) -> 장애물로 간주
         is_obstacle = True
@@ -170,6 +183,7 @@ def analyze_single_image(image_url: str) -> AnalysisResult:
                  tag = "other_obstacle" 
             else:
                  tag = "other_obstacle"
+        answer = "Yes"
         return AnalysisResult(analysis_result=answer, is_obstacle=is_obstacle, tag=tag)
     
     # 장애물이 아닐 경우            
