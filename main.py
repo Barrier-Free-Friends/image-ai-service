@@ -4,9 +4,50 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from PIL import Image
 import io
 import requests # URL에서 이미지 다운로드하는 도구
+import uvicorn
+from contextlib import asynccontextmanager
+import socket
+import py_eureka_client.eureka_client as eureka_client
 
-app = FastAPI()
+APP_NAME = "IMAGE-AI-SERVICE"
+INSTANCE_PORT = 8000
+EUREKA_SERVER_URL = "http://52.79.151.83:3150/eureka/"
 
+try:
+    hostname = socket.gethostname()
+    INSTANCE_IP = socket.gethostbyname(hostname)
+except:
+    INSTANCE_IP = "127.0.0.1"
+
+
+def get_external_ip():
+    try:
+        ip = requests.get('https://api.ipify.org').text
+        print(f"퍼블릭 IP 주소: {ip}")
+        return ip
+    except Exception as e:
+        print(f"퍼블릭 IP 주소 조회 실패: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 앱 시작 시 실행할 코드
+    
+    cur_ip = get_external_ip()
+    
+    await eureka_client.init_async(
+        eureka_server=EUREKA_SERVER_URL,
+        app_name=APP_NAME,
+        instance_port=INSTANCE_PORT,
+        instance_ip=cur_ip,
+        instance_host=cur_ip
+    )
+    print("Eureka 등록 완료")
+    yield
+    await eureka_client.stop()
+    print("Eureka 등록 해제 완료")
+
+
+app = FastAPI(lifespan=lifespan)
 # 1. 모델 설정
 model_id = "vikhyatk/moondream2"
 revision = "2024-08-26"
@@ -31,6 +72,17 @@ print("모델 로딩 완료")
 class ImageRequest(BaseModel):
     imageUrl : str
     
+@app.get("/actuator/health")
+async def health_check():
+    return {"status": "UP"}
+
+@app.get("/")
+async def root():
+    return {"message": "Image AI Service is running."}
+
+@app.get("/info")
+async def info():
+    return {"app": APP_NAME, "status": "running"}
 
 @app.post("/analyze")
 async def analyze_image(request: ImageRequest):
@@ -121,3 +173,6 @@ async def analyze_image(request: ImageRequest):
         "is_obstacle": is_obstacle,
         "tag": tag
     }
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=INSTANCE_PORT)

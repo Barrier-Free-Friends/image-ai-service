@@ -50,4 +50,4 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest
             
             # 새 컨테이너 실행 (8000포트 사용 예시)
-            docker run -d --name image-ai-app -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest
+            docker run -d --name image-ai-app -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/image-ai-service:latest
