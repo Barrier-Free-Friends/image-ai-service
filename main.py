@@ -66,6 +66,10 @@ async def health_check():
 async def root():
     return {"message": "Image AI Service is running."}
 
+@app.get("/info")
+async def info():
+    return {"app": APP_NAME, "status": "running"}
+
 @app.post("/analyze")
 async def analyze_image(request: ImageRequest):
     
