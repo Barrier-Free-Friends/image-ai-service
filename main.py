@@ -8,6 +8,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 import socket
 import py_eureka_client.eureka_client as eureka_client
+from typing import List
 
 APP_NAME = "IMAGE-AI-SERVICE"
 INSTANCE_PORT = 8000
@@ -69,8 +70,6 @@ model.eval() # 평가 모드로 설정 (속도 및 안정성 향상)
 tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
 print("모델 로딩 완료")
 
-class ImageRequest(BaseModel):
-    imageUrl : str
     
 @app.get("/actuator/health")
 async def health_check():
@@ -84,10 +83,16 @@ async def root():
 async def info():
     return {"app": APP_NAME, "status": "running"}
 
-@app.post("/analyze")
-async def analyze_image(request: ImageRequest):
-    
-    
+class ImageListRequest(BaseModel):
+    imageUrls : List[str]
+        
+class AnalysisResult(BaseModel):
+    analysis_result: str
+    is_obstacle: bool
+    tag: str
+
+
+def analyze_single_image(image_url: str) -> AnalysisResult:
     try:
         
         # 요청 거부하지 않도록 User-Agent 헤더 추가
@@ -96,7 +101,7 @@ async def analyze_image(request: ImageRequest):
         }
         
         # 1. 이미지 다운로드
-        response = requests.get(request.imageUrl, headers=headers)
+        response = requests.get(image_url, headers=headers)
         response.raise_for_status()
         
         content_type = response.headers.get('Content-Type', '')
@@ -110,10 +115,10 @@ async def analyze_image(request: ImageRequest):
         
     except requests.exceptions.RequestException as e:
         print(f"다운로드 에러: {e}")
-        raise HTTPException(status_code=400, detail=f"이미지 다운로드 실패(네트워크): {str(e)}")
+        return AnalysisResult(analysis_result=f"이미지 다운로드 실패(네트워크): {str(e)}", is_obstacle=False, tag="download error")
     except Exception as e:
         print(f"이미지 처리 에러: {e}")
-        raise HTTPException(status_code=400, detail=f"이미지 변환 실패: {str(e)}")
+        raise AnalysisResult(analysis_result=f"이미지 변환 실패: {str(e)}", is_obstacle=False, tag="process error")
 
     # 3. 질문 (프롬프트) 변경
     prompt = "Check if there is a physical object blocking the path, such as a fallen tree, construction barrier, or large rocks etc. Do not consider snow, leaves, or a hill as an obstacle unless it completely blocks the way. If the path is passable for a wheelchair, say 'The path is clear'. Otherwise, describe the blocking object."
@@ -147,15 +152,15 @@ async def analyze_image(request: ImageRequest):
         slope_keywords = ["stairs", "step", "staircase"] 
 
         if any(k in answer_lower for k in construction_keywords):
-            tag = "construction_site"
+            tag = "construction"
         elif any(k in answer_lower for k in tree_keywords):
-            tag = "fallen_tree"
+            tag = "tree"
         elif any(k in answer_lower for k in rock_keywords):
             tag = "rock"
         elif any(k in answer_lower for k in furniture_keywords):
-            tag = "street_furniture"
+            tag = "furniture"
         elif any(k in answer_lower for k in slope_keywords):
-            tag = "steep_slope" # 계단 등
+            tag = "slope" # 계단 등
         else:
             # 눈(snow)이나 언덕(hill)이라서 장애물로 잡혔는데, 위 키워드에 없으면 
             # 사실 장애물이 아닐 확률이 높으므로 다시 한번 필터링하거나 기타로 분류
@@ -165,14 +170,52 @@ async def analyze_image(request: ImageRequest):
                  tag = "other_obstacle" 
             else:
                  tag = "other_obstacle"
-            
+        return AnalysisResult(analysis_result=answer, is_obstacle=is_obstacle, tag=tag)
+    
+    # 장애물이 아닐 경우            
     print(answer)
-    # 6. JSON 응답
-    return {
-        "analysis_result": answer,
-        "is_obstacle": is_obstacle,
-        "tag": tag
-    }
+    return AnalysisResult(analysis_result=answer, is_obstacle=is_obstacle, tag=tag)
+
+
+@app.post("/analyze", response_model=AnalysisResult)
+async def analyze_list_image(request: ImageListRequest):
+    
+    """
+    여러 이미지 URL을 받아 for 루프를 돌려 분석한다,
+    하나라도 '장애물이 아님' (is_obstacle = False)으로 판단되면 결과를 리턴한다
+    모든 이미지가 장애물일 경우, 첫 번째 장애물 결과를 리턴하도록 한다
+    """
+    
+    if not request.imageUrls:
+        raise HTTPException(status_code=400, detail="이미지 URL 리스트가 비어 있습니다.")
+    
+    first_obstacle_result = None
+    
+    for url in request.imageUrls:
+        # 단일 이미지 분석하고 결과 받기
+        result = analyze_single_image(url)
+        
+        # 장애물이 아닌 경우
+        if not result.is_obstacle:
+            return result.model_dump()
+        
+        # 장애물인 경우, 첫 번째 결과 저장
+        if first_obstacle_result is None:
+            first_obstacle_result = result.model_dump()
+
+    # 모든 이미지가 장애물인 경우, 첫 번째 장애물 결과 리턴
+    if first_obstacle_result is not None:
+        return first_obstacle_result
+
+    return AnalysisResult(
+        analysis_result="No",
+        is_obstacle=False,
+        tag="normal"
+    ).model_dump()
+    
+    
+
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=INSTANCE_PORT)
