@@ -35,6 +35,7 @@ async def analyze_list_image(request: ImageListRequest):
     for url in request.images:
         # 단일 이미지 분석하고 결과 받기
         result = ai_service.analyze_single_image(url)
+        print(f"이미지 URL: {url.fileUrl}, 분석 결과: {result}")
         
         # 장애물이 아닌 경우
         if not result.is_obstacle:

@@ -58,21 +58,26 @@ class AiService:
 
         # 3. 질문
         prompt = (
-                "Analyze the image for a pedestrian navigation service. "
-                "Even if the road is damaged or under construction, treat it as a path context. "
-                "Choose exactly ONE label from the list below. "
-                "Output ONLY the label word (e.g., 'construction', 'tree'). "
-                "Do NOT use single letters like 'A', 'B'.\n\n"
-                "Options:\n"
-                "- 'construction': Active road work, excavators, heavy machinery, digging, trucks, fences, or cones.\n"
-                "- 'not_a_path': Only if the image is indoors, a close-up of an object, a wall, or clearly NOT a walking environment.\n"
-                "- 'tree': Fallen tree, branches, or thick vegetation blocking the path.\n"
-                "- 'rock': Large rocks, pile of stones, or rubble are blocking the way.\n"
-                "- 'furniture': Benches, poles, pots, or boxes blocking the way.\n"
-                "- 'stairs': Stairs, steps or steep slopes.\n"
-                "- 'clear': The path is safe and passable (no obstacles) or A walkable road or path with NO obstacles.\n"
-                "- 'other': Any other obstacle preventing movement."
-            )
+                """Classify the image into exactly ONE tag based on walkability.
+                
+                If the image does NOT show a walking path (e.g., animals, people, portraits,
+                indoor scenes, backgrounds, illustrations) AND no obstacle is blocking a path,
+                output word is clear
+
+                If a person can walk normally and no obstacle is blocking the way,
+                output word is clear
+
+                If an obstacle exists, output ONE of the following tags:
+                construction
+                tree
+                rock
+                furniture
+                stairs
+                not_a_path
+                other_obstacle
+
+                Output ONLY the tag word. Do NOT answer yes or no."""
+                            )
         
         # 4. 모델 추론
         enc_image = self.model.encode_image(image)
@@ -85,7 +90,7 @@ class AiService:
         print(f"정제된 답변: {clean_answer}") # 로그 확인용
 
         # 5. 결과 후처리
-        is_obstacle = False
+        is_obstacle = True
         tag = "other_obstacle"
         analysis_result = "Yes"
         
@@ -94,11 +99,12 @@ class AiService:
             tag = "normal"
             analysis_result = "No"
             
-            # 장애물 있는 경우
-        elif "not_a_path" in clean_answer:
-            is_obstacle = True
+           
+        elif "not a path" in clean_answer:
+            is_obstacle = False
             tag = "not_a_path"
             analysis_result = "No"
+         # 장애물 있는 경우
         elif "construction" in clean_answer:
             tag = "construction"
         elif "tree" in clean_answer:
@@ -112,9 +118,7 @@ class AiService:
         else:
             tag = "other_obstacle"
             
-            return AnalysisResult(analysis_result=analysis_result, is_obstacle=is_obstacle, tag=tag)
-        
-        # 장애물이 아닐 경우            
-        print(analysis_result)
         return AnalysisResult(analysis_result=analysis_result, is_obstacle=is_obstacle, tag=tag)
+        
+        
 ai_service = AiService()
