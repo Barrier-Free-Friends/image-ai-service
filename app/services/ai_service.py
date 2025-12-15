@@ -58,72 +58,63 @@ class AiService:
 
         # 3. 질문
         prompt = (
-                "Is there a 'fallen tree', 'construction barrier', 'large rocks', 'stairs', or 'furniture' blocking the way? "
-                "If yes, name the obstacle. "
-                "If no obstacle is seen, check if this is a road or path. "
-                "If it is NOT a road or path, say 'not a path'. "
-                "If it is a clear road, say 'clear'."
+                "Analyze the image for a pedestrian navigation service. "
+                "Even if the road is damaged or under construction, treat it as a path context. "
+                "Choose exactly ONE label from the list below. "
+                "Output ONLY the label word (e.g., 'construction', 'tree'). "
+                "Do NOT use single letters like 'A', 'B'.\n\n"
+                "Options:\n"
+                "- 'construction': Active road work, excavators, heavy machinery, digging, trucks, fences, or cones.\n"
+                "- 'not_a_path': Only if the image is indoors, a close-up of an object, a wall, or clearly NOT a walking environment.\n"
+                "- 'tree': Fallen tree, branches, or thick vegetation blocking the path.\n"
+                "- 'rock': Large rocks, pile of stones, or rubble are blocking the way.\n"
+                "- 'furniture': Benches, poles, pots, or boxes blocking the way.\n"
+                "- 'stairs': Stairs, steps or steep slopes.\n"
+                "- 'clear': The path is safe and passable (no obstacles) or A walkable road or path with NO obstacles.\n"
+                "- 'other': Any other obstacle preventing movement."
             )
         
         # 4. 모델 추론
         enc_image = self.model.encode_image(image)
-        answer = self.model.answer_question(enc_image, prompt, self.tokenizer)
+        raw_answer = self.model.answer_question(enc_image, prompt, self.tokenizer)
+        
+        clean_answer = raw_answer.strip().lower()
+        clean_answer = clean_answer.replace(".", "").replace("'", "").replace('"', "")
 
-        print(f"AI 답변: {answer}") # 로그 확인용
+        print(f"AI 답변: {raw_answer}") # 로그 확인용
+        print(f"정제된 답변: {clean_answer}") # 로그 확인용
 
         # 5. 결과 후처리
         is_obstacle = False
-        tag = "normal"
-        answer_lower = answer.lower()
+        tag = "other_obstacle"
+        analysis_result = "Yes"
         
-        if "not a path" in answer_lower:
-            # 길이 아닌 경우
-            is_obstacle = False
-            tag = "not_a_path"
-            answer = "No"
-
-        # 길 깨끗한 경우
-        elif "clear" in answer_lower or "passable" in answer_lower or "no obstacle" in answer_lower or 'no' in answer_lower:
+        if 'clear' in clean_answer:
             is_obstacle = False
             tag = "normal"
-            answer = "No"
-        
-        # 장애물 있는 경우
-        else:
-            # 그 외의 경우 (무언가 설명하기 시작함) -> 장애물로 간주
-            is_obstacle = True
+            analysis_result = "No"
             
-            tree_keywords = ["tree", "branch", "log", "trunk", "wood", "root", "plant", "bush", "stump"]
-            rock_keywords = ["rock", "stone", "boulder", "concrete", "rubble", "brick"]
-            construction_keywords = ["construction", "cone", "barrier", "sign", "work", "safety", "fence"]
-            furniture_keywords = ["planter", "pot", "box", "bench", "pole", "bollard", "post", "street furniture"]
-            # stairs나 step은 확실한 장애물이므로 유지하되, slope(단순 경사)는 제외할지 고민 필요
-            slope_keywords = ["stairs", "step", "staircase"] 
-
-            if any(k in answer_lower for k in construction_keywords):
-                tag = "construction"
-            elif any(k in answer_lower for k in tree_keywords):
-                tag = "tree"
-            elif any(k in answer_lower for k in rock_keywords):
-                tag = "rock"
-            elif any(k in answer_lower for k in furniture_keywords):
-                tag = "furniture"
-            elif any(k in answer_lower for k in slope_keywords):
-                tag = "slope" # 계단 등
-            else:
-                # 눈(snow)이나 언덕(hill)이라서 장애물로 잡혔는데, 위 키워드에 없으면 
-                # 사실 장애물이 아닐 확률이 높으므로 다시 한번 필터링하거나 기타로 분류
-                if "snow" in answer_lower or "hill" in answer_lower:
-                    # AI가 "Just snow"라고 대답했을 경우를 대비해 예외 처리 가능
-                    # 하지만 위 prompt에서 clear를 유도했으므로 여기서는 기타 장애물로 둠
-                    tag = "other_obstacle" 
-                else:
-                    tag = "other_obstacle"
-            answer = "Yes"
-            return AnalysisResult(analysis_result=answer, is_obstacle=is_obstacle, tag=tag)
+            # 장애물 있는 경우
+        elif "not_a_path" in clean_answer:
+            is_obstacle = True
+            tag = "not_a_path"
+            analysis_result = "No"
+        elif "construction" in clean_answer:
+            tag = "construction"
+        elif "tree" in clean_answer:
+            tag = "tree"
+        elif "rock" in clean_answer:
+            tag = "rock"
+        elif "furniture" in clean_answer:
+            tag = "furniture"
+        elif "stairs" in clean_answer:
+            tag = "slope"
+        else:
+            tag = "other_obstacle"
+            
+            return AnalysisResult(analysis_result=analysis_result, is_obstacle=is_obstacle, tag=tag)
         
         # 장애물이 아닐 경우            
-        print(answer)
-        return AnalysisResult(analysis_result=answer, is_obstacle=is_obstacle, tag=tag)\
-
+        print(analysis_result)
+        return AnalysisResult(analysis_result=analysis_result, is_obstacle=is_obstacle, tag=tag)
 ai_service = AiService()
