@@ -64,9 +64,6 @@ class AiService:
                 indoor scenes, backgrounds, illustrations) AND no obstacle is blocking a path,
                 output word is clear
 
-                If a person can walk normally and no obstacle is blocking the way,
-                output word is clear
-
                 If an obstacle exists, output ONE of the following tags:
                 construction
                 tree
