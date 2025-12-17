@@ -35,7 +35,7 @@ class AiService:
         print(f"모델 로딩 완료 (소요 시간: {end - start:.2f}초)")
 
 
-    async def analyze_single_image(self, image_request: AiImageRequest) -> AnalysisResult:
+    def analyze_single_image(self, image_request: AiImageRequest) -> AnalysisResult:
         try:
             
             # 요청 거부하지 않도록 User-Agent 헤더 추가

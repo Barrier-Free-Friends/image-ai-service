@@ -7,6 +7,7 @@ from app.core.config import APP_NAME, INSTANCE_PORT, EUREKA_SERVER_URL, get_exte
 from app.services.ai_service import ai_service
 from app.api.routes import router
 from prometheus_fastapi_instrumentator import Instrumentator
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     hostname = socket.gethostname()
@@ -14,10 +15,14 @@ try:
 except:
     INSTANCE_IP = "127.0.0.1"
 
+thread_executor = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 앱 시작 시 실행할 코드
+    
+    global thread_executor
+    thread_executor = ThreadPoolExecutor(max_workers=4)
     
     cur_ip = get_external_ip()
     ai_service.load_model()
@@ -31,6 +36,11 @@ async def lifespan(app: FastAPI):
     )
     print("Eureka 등록 완료")
     yield # 앱 실행 중
+    
+    if thread_executor:
+        thread_executor.shutdown()
+    
+    
     await eureka_client.stop()
     print("Eureka 등록 해제 완료")
 
