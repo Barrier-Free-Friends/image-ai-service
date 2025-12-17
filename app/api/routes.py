@@ -4,8 +4,7 @@ from app.schemas.image_dto import ImageListRequest, AnalysisResult
 from app.services.ai_service import ai_service
 # from concurrent.futures import ProcessPoolExecutor
 import asyncio
-from app.main import thread_executor
-
+from app.core.thread_executor import thread_executor
 
 router = APIRouter()
 
