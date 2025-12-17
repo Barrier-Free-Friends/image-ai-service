@@ -5,6 +5,7 @@ from fastapi import HTTPException
 import requests
 from PIL import Image
 import io
+import time
 
 class AiService:
     def __init__(self):
@@ -16,6 +17,9 @@ class AiService:
     
     def load_model(self):
         print("모델 로딩 중... 잠시만 기다려주세요.")
+        
+        # 모델 로딩 시간 측정
+        start = time.perf_counter()
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_id, 
             trust_remote_code=True, 
@@ -25,7 +29,10 @@ class AiService:
         self.model.to("cpu")
         self.model.eval()
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, revision=self.revision)
-        print("모델 로딩 완료")
+
+        
+        end = time.perf_counter()
+        print(f"모델 로딩 완료 (소요 시간: {end - start:.2f}초)")
 
 
     def analyze_single_image(self, image_request: AiImageRequest) -> AnalysisResult:
@@ -56,7 +63,6 @@ class AiService:
             print(f"이미지 처리 에러: {e}")
             raise AnalysisResult(analysis_result=f"이미지 변환 실패: {str(e)}", is_obstacle=False, tag="process error")
 
-        # 3. 질문
         prompt = (
                 """Classify the image into exactly ONE tag based on walkability.
                 
@@ -77,7 +83,13 @@ class AiService:
                             )
         
         # 4. 모델 추론
+        
+        # 추론 시간 측정
+        infer_start = time.perf_counter()
         enc_image = self.model.encode_image(image)
+        infer_end = time.perf_counter()
+        print(f"모델 추론 완료 (소요 시간: {infer_end - infer_start:.2f}초)")
+        
         raw_answer = self.model.answer_question(enc_image, prompt, self.tokenizer)
         
         clean_answer = raw_answer.strip().lower()
