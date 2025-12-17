@@ -37,12 +37,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
 
-Instrumentator = Instrumentator(
+instrumentator = Instrumentator(
     should_group_status_codes=False,
     should_ignore_untemplated=True,
     should_instrument_requests_inprogress=True,
     
 )
+
+instrumentator.instrument(app).expose(app, endpoint="/actuator/prometheus")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=INSTANCE_PORT)
