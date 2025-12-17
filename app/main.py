@@ -6,6 +6,7 @@ import py_eureka_client.eureka_client as eureka_client
 from app.core.config import APP_NAME, INSTANCE_PORT, EUREKA_SERVER_URL, get_external_ip
 from app.services.ai_service import ai_service
 from app.api.routes import router
+from prometheus_fastapi_instrumentator import Instrumentator
 
 try:
     hostname = socket.gethostname()
@@ -35,6 +36,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
+
+Instrumentator = Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=True,
+    should_instrument_requests_inprogress=True,
+    
+)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=INSTANCE_PORT)
