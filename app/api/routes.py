@@ -39,7 +39,7 @@ async def analyze_list_image(request: ImageListRequest):
         
         # 스레드 풀에서 동기 함수를 비동기적으로 실행
             # 현재 이벤트 루프
-        result = await ai_service.analyze_single_image(url)
+        result = ai_service.analyze_single_image(url)
     
         print(f"이미지 URL: {url.fileUrl}, 분석 결과: {result}")
         
