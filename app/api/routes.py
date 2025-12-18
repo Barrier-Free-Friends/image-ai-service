@@ -2,9 +2,6 @@ from fastapi import HTTPException, APIRouter
 from app.core.config import APP_NAME
 from app.schemas.image_dto import ImageListRequest, AnalysisResult
 from app.services.ai_service import ai_service
-# from concurrent.futures import ProcessPoolExecutor
-import asyncio
-from app.core.thread_executor import thread_executor
 
 router = APIRouter()
 
@@ -35,16 +32,15 @@ async def analyze_list_image(request: ImageListRequest):
     
     first_obstacle_result = None
     
-    # 현재 이벤트 루프
-    loop = asyncio.get_running_loop()
-    
+
     for url in request.images:
         # 단일 이미지 분석하고 결과 받기
         # result = await ai_service.analyze_single_image(url)
         
         # 스레드 풀에서 동기 함수를 비동기적으로 실행
-        result = await loop.run_in_executor(thread_executor, ai_service.analyze_single_image, url)
-        
+            # 현재 이벤트 루프
+        result = ai_service.analyze_single_image(url)
+    
         print(f"이미지 URL: {url.fileUrl}, 분석 결과: {result}")
         
         # 장애물이 아닌 경우
