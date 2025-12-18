@@ -19,7 +19,7 @@ async def info():
 
 
 @router.post("/analyze", response_model=AnalysisResult)
-def analyze_list_image(request: ImageListRequest):
+async def analyze_list_image(request: ImageListRequest):
     
     """
     여러 이미지 URL을 받아 for 루프를 돌려 분석한다,
