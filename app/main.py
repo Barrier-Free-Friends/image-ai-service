@@ -6,7 +6,6 @@ import py_eureka_client.eureka_client as eureka_client
 from app.core.config import APP_NAME, INSTANCE_PORT, EUREKA_SERVER_URL, get_external_ip
 from app.services.ai_service import ai_service
 from app.api.routes import router
-from app.core.thread_executor import thread_executor
 from prometheus_fastapi_instrumentator import Instrumentator
 
 try:
@@ -20,8 +19,7 @@ except:
 async def lifespan(app: FastAPI):
     # 앱 시작 시 실행할 코드
     
-    global global_thread_executor
-    global_thread_executor = thread_executor
+
     
     cur_ip = get_external_ip()
     ai_service.load_model()
@@ -35,9 +33,6 @@ async def lifespan(app: FastAPI):
     )
     print("Eureka 등록 완료")
     yield # 앱 실행 중
-    
-    if global_thread_executor:
-        global_thread_executor.shutdown()
     
     
     await eureka_client.stop()
