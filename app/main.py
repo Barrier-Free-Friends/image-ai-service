@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 import uvicorn
 from contextlib import asynccontextmanager
 import socket
@@ -40,6 +41,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
+
+def custom_openapi():
+    openapi_schema = get_openapi(
+        title=f"{APP_NAME} API",
+        version="1.0.0",
+        description="Image AI Service API 문서",
+        routes=app.routes,
+    )
+    
+    openapi_schema["openapi"] = "3.0.0"
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 instrumentator = Instrumentator(
     should_group_status_codes=False,
