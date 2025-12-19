@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     await eureka_client.stop()
     print("Eureka 등록 해제 완료")
 
-app = FastAPI(lifespan=lifespan, openapi_url="/image-ai-service/v3/api-docs")
+app = FastAPI(lifespan=lifespan, openapi_url="/v3/api-docs")
 app.include_router(router)
 
 def custom_openapi():
