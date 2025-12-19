@@ -39,9 +39,7 @@ async def lifespan(app: FastAPI):
     await eureka_client.stop()
     print("Eureka 등록 해제 완료")
 
-app = FastAPI(lifespan=lifespan,
-              openapi_url="/image-ai-service/v3/api-docs",
-              docs_url="/swagger-ui/index.html",)
+app = FastAPI(lifespan=lifespan, openapi_url="/image-ai-service/v3/api-docs")
 app.include_router(router)
 
 def custom_openapi():
@@ -52,7 +50,7 @@ def custom_openapi():
         routes=app.routes,
     )
     
-    openapi_schema["openapi"] = "3.0.0"
+    openapi_schema["openapi"] = "3.1.0"
     
     app.openapi_schema = openapi_schema
     return app.openapi_schema
