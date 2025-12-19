@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     print("Eureka 등록 해제 완료")
 
 app = FastAPI(lifespan=lifespan,
-              openapi_url="/v3/api-docs",
+              openapi_url="/image-ai-service/v3/api-docs",
               docs_url="/swagger-ui/index.html",)
 app.include_router(router)
 
