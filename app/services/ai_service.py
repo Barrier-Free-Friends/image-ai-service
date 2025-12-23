@@ -44,7 +44,7 @@ class AiService:
             }
             
             # 1. 이미지 다운로드
-            response = requests.get(image_request.fileUrl, headers=headers)
+            response = requests.get(image_request.fileUrl, headers=headers, verify=False)
             response.raise_for_status()
             
             content_type = response.headers.get('Content-Type', '')
