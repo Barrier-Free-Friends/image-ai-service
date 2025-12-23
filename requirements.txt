@@ -13,3 +13,4 @@ python-multipart
 py_eureka_client
 prometheus-client
 prometheus-fastapi-instrumentator
+aiokafka==0.12.0

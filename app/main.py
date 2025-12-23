@@ -8,6 +8,7 @@ from app.core.config import APP_NAME, INSTANCE_PORT, EUREKA_SERVER_URL, get_exte
 from app.services.ai_service import ai_service
 from app.api.routes import router
 from prometheus_fastapi_instrumentator import Instrumentator
+from app.core.kafka_handler import kafka_handler
 
 try:
     hostname = socket.gethostname()
@@ -25,6 +26,10 @@ async def lifespan(app: FastAPI):
     cur_ip = get_external_ip()
     ai_service.load_model()
     
+    await kafka_handler.start()
+    print("Kafka Consumers 및 Producers 시작 완료")
+    
+    
     await eureka_client.init_async(
         eureka_server=EUREKA_SERVER_URL,
         app_name=APP_NAME,
@@ -35,6 +40,9 @@ async def lifespan(app: FastAPI):
     print("Eureka 등록 완료")
     yield # 앱 실행 중
     
+    
+    # 종료 시 실행할 코드
+    await kafka_handler.stop()
     
     await eureka_client.stop()
     print("Eureka 등록 해제 완료")
